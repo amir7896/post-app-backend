@@ -1,7 +1,6 @@
 const User = require("../models/auth");
 const authService = require("../services/authService");
 const { ERRORS, STATUS_CODE, SUCCESS_MSG } = require("../constants");
-const axios = require("axios");
 
 const registerUser = async (req, res) => {
   try {
@@ -77,22 +76,7 @@ const loginUser = async (req, res) => {
   }
 };
 
-const getPosts = async (req, res) => {
-  try {
-    const start = 5;
-    const response = await axios.get(
-      `https://jsonplaceholder.typicode.com/posts`
-    );
-
-    return res.status(200).json({ data: response.data });
-  } catch (error) {
-    console.log("Error in get posts :", error);
-    return error;
-  }
-};
-
 module.exports = {
   loginUser,
   registerUser,
-  getPosts,
 };

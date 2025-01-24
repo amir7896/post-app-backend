@@ -1,34 +1,16 @@
 const { check, validationResult } = require("express-validator");
-const { STATUS_CODE, ERRORS } = require("../../constants"); // Assuming you import your constants including REQUIRED
-
-exports.validCar = [
-  check("carModel")
+const { STATUS_CODE, ERRORS } = require("../../constants");
+exports.validPost = [
+  check("title")
     .notEmpty()
-    .withMessage(ERRORS.REQUIRED.CAR_MODEL)
+    .withMessage(ERRORS.REQUIRED.POST_TITLE)
     .isString()
     .withMessage(ERRORS.REQUIRED.MUST_STRING),
-  check("price")
+  check("content")
     .notEmpty()
-    .withMessage(ERRORS.REQUIRED.CAR_PRICE)
-    .isNumeric()
-    .withMessage(ERRORS.REQUIRED.PRICE_MUST_NUMBER),
-  check("phoneNumber")
-    .notEmpty()
-    .withMessage(ERRORS.REQUIRED.PHONE_NO)
-    .isString()
-    .withMessage(ERRORS.REQUIRED.MUST_STRING)
-    .isLength({ min: 11, max: 11 })
-    .withMessage(ERRORS.REQUIRED.PHONE_LIMIT),
-  check("city")
-    .notEmpty()
-    .withMessage(ERRORS.REQUIRED.CITY)
+    .withMessage(ERRORS.REQUIRED.POST_CONTENT)
     .isString()
     .withMessage(ERRORS.REQUIRED.MUST_STRING),
-  check("maxPictures")
-    .notEmpty()
-    .withMessage(ERRORS.REQUIRED.MAX_PICTURES)
-    .isInt({ min: 1, max: 10 })
-    .withMessage(ERRORS.REQUIRED.MAX_PICTURES_LIMIT),
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
