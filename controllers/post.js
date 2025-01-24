@@ -1,0 +1,183 @@
+const Post = require("../models/post");
+const Comment = require("../models/comment");
+const { ERRORS, STATUS_CODE, SUCCESS_MSG } = require("../constants");
+
+// Create a new post
+const createPost = async (req, res) => {
+  try {
+    const { title, content } = req.body;
+
+    const { userId } = req.user;
+
+    const post = new Post({
+      user: userId,
+      title: title,
+      content: content,
+    });
+
+    await post.save();
+
+    return res.status(STATUS_CODE.OK).json({
+      success: true,
+      message: SUCCESS_MSG.POST.CREATED,
+      user: post,
+    });
+  } catch (error) {
+    console.error("Server error on creating post:", error);
+    return res
+      .status(STATUS_CODE.SERVER_ERROR)
+      .json({ success: false, message: ERRORS.ERRORS.SERVER_ERROR });
+  }
+};
+
+// Like or unlike a post
+const likePost = async (req, res) => {
+  try {
+    const { postId } = req.body;
+
+    const { userId } = req.user;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res
+        .status(STATUS_CODE.NOT_FOUND)
+        .json({ success: false, message: ERRORS.ERRORS.POST_NOT_FOUND });
+    }
+
+    const userIndex = post.likes.indexOf(userId);
+
+    let likeMessage = "";
+    if (userIndex === -1) {
+      post.likes.push(userId);
+      message = SUCCESS_MSG.POST.LIKE;
+    } else {
+      post.likes.splice(userIndex, 1);
+      message = SUCCESS_MSG.POST.UN_LIKE;
+    }
+
+    await post.save();
+
+    return res.status(STATUS_CODE.OK).json({
+      success: true,
+      message: likeMessage,
+      likesCount: post.likes.length,
+    });
+  } catch (error) {
+    console.log("Server error on like post:", error);
+    return res
+      .status(STATUS_CODE.SERVER_ERROR)
+      .json({ message: ERRORS.ERRORS.SERVER_ERROR, error: error });
+  }
+};
+
+// Comment on a post
+const commentOnPost = async (req, res) => {
+  try {
+    const { postId, content } = req.body;
+
+    const { userId } = req.user;
+
+    const comment = new Comment({ user: userId, post: postId, content });
+    await comment.save();
+
+    await Post.findByIdAndUpdate(postId, { $push: { comments: comment._id } });
+
+    return res
+      .status(STATUS_CODE.OK)
+      .json({ success: true, message: SUCCESS_MSG.COMMENT.ADDED });
+  } catch (error) {
+    console.log("Server error comment on post:", error);
+    res
+      .status(STATUS_CODE.SERVER_ERROR)
+      .json({ message: ERRORS.ERRORS.SERVER_ERROR, error: error });
+  }
+};
+
+// Get all posts with likes and comments
+const getAllPosts = async (req, res) => {
+  try {
+    const posts = await Post.aggregate([
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      },
+      {
+        $unwind: "$userDetails",
+      },
+      {
+        $lookup: {
+          from: "comments",
+          localField: "comments",
+          foreignField: "_id",
+          as: "commentDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "commentDetails.user",
+          foreignField: "_id",
+          as: "commentUserDetails",
+        },
+      },
+      {
+        $addFields: {
+          likesCount: { $size: "$likes" },
+          userName: "$userDetails.username",
+          comments: {
+            $map: {
+              input: "$commentDetails",
+              as: "comment",
+              in: {
+                _id: "$$comment._id",
+                content: "$$comment.content",
+                user: {
+                  $arrayElemAt: [
+                    "$commentUserDetails",
+                    {
+                      $indexOfArray: ["$commentDetails._id", "$$comment._id"],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          content: 1,
+          user: "$userName",
+          likesCount: 1,
+          comments: {
+            _id: 1,
+            content: 1,
+            user: {
+              _id: 1,
+              userName: 1,
+            },
+          },
+        },
+      },
+    ]);
+
+    res.json(posts);
+  } catch (error) {
+    return res
+      .status(STATUS_CODE.SERVER_ERROR)
+      .json({ message: ERRORS.ERRORS.SERVER_ERROR, error: error });
+  }
+};
+
+module.exports = {
+  createPost,
+  likePost,
+  commentOnPost,
+  getAllPosts,
+};
