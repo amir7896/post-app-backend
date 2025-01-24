@@ -11,7 +11,7 @@ const registerUser = async (req, res) => {
     if (user) {
       return res
         .status(STATUS_CODE.CONFLICT)
-        .json({ success: false, message: ERRORS.ERRORS.USER_NOT_FOUND });
+        .json({ success: false, message: ERRORS.ERRORS.USER_EXISTS });
     }
 
     const hasPassword = await authService.generateHashPassword(password);
@@ -24,14 +24,14 @@ const registerUser = async (req, res) => {
 
     await newUser.save();
     // Send the token as part of the response
-    res.status(STATUS_CODE.OK).json({
+    return res.status(STATUS_CODE.OK).json({
       success: true,
       message: SUCCESS_MSG.AUTH_MSG.REGISTER_SUCCESS,
       user: newUser,
     });
   } catch (error) {
     console.error("Error during registration:", error);
-    res
+    return res
       .status(STATUS_CODE.SERVER_ERROR)
       .json({ success: false, message: ERRORS.ERRORS.SERVER_ERROR });
   }
@@ -62,7 +62,7 @@ const loginUser = async (req, res) => {
     const token = await authService.generateJwtToken(payload, expiresIn);
 
     // Send the token as part of the response
-    res.status(STATUS_CODE.OK).json({
+    return res.status(STATUS_CODE.OK).json({
       success: true,
       message: SUCCESS_MSG.AUTH_MSG.LOGIN_SUCCESS,
       user: payload,
@@ -70,7 +70,7 @@ const loginUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Error during registration:", error);
-    res
+    return res
       .status(STATUS_CODE.SERVER_ERROR)
       .json({ success: false, message: ERRORS.ERRORS.SERVER_ERROR });
   }
