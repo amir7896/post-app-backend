@@ -1,6 +1,42 @@
 const User = require("../models/auth");
 const authService = require("../services/authService");
 const { ERRORS, STATUS_CODE, SUCCESS_MSG } = require("../constants");
+const axios = require("axios");
+
+const registerUser = async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (user) {
+      return res
+        .status(STATUS_CODE.CONFLICT)
+        .json({ success: false, message: ERRORS.ERRORS.USER_NOT_FOUND });
+    }
+
+    const hasPassword = await authService.generateHashPassword(password);
+
+    const newUser = new User({
+      userName: username,
+      email: email,
+      password: hasPassword,
+    });
+
+    await newUser.save();
+    // Send the token as part of the response
+    res.status(STATUS_CODE.OK).json({
+      success: true,
+      message: SUCCESS_MSG.AUTH_MSG.REGISTER_SUCCESS,
+      user: newUser,
+    });
+  } catch (error) {
+    console.error("Error during registration:", error);
+    res
+      .status(STATUS_CODE.SERVER_ERROR)
+      .json({ success: false, message: ERRORS.ERRORS.SERVER_ERROR });
+  }
+};
 
 const loginUser = async (req, res) => {
   try {
@@ -41,6 +77,22 @@ const loginUser = async (req, res) => {
   }
 };
 
+const getPosts = async (req, res) => {
+  try {
+    const start = 5;
+    const response = await axios.get(
+      `https://jsonplaceholder.typicode.com/posts`
+    );
+
+    return res.status(200).json({ data: response.data });
+  } catch (error) {
+    console.log("Error in get posts :", error);
+    return error;
+  }
+};
+
 module.exports = {
   loginUser,
+  registerUser,
+  getPosts,
 };

@@ -4,7 +4,6 @@ const dbCon = require("./config/dbCon");
 const cors = require("cors");
 
 const authRoutes = require("./routes/auth");
-const carRoutes = require("./routes/car");
 
 const PORT = process.env.PORT;
 const app = express();
@@ -18,7 +17,6 @@ app.use(
   })
 );
 app.use("/api/auth", authRoutes);
-app.use("/api/car", carRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is listening on port: ${PORT}`);

@@ -4,11 +4,8 @@ exports.ERRORS = {
   FORBIDDEN: "Forbidden",
   UN_AUTHORIZE: "Unauthorized access",
   INVALID_CREDENTIALS: "Invalid credentials",
-};
-
-exports.CAR = {
-  NOT_CREATED: "Car  not created successfully",
-  NOT_FOUND: "Cars not found",
+  USER_EXISTS: "User already exists",
+  USER_NOT_FOUND: "User not found",
 };
 
 exports.REQUIRED = {
