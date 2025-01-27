@@ -181,7 +181,7 @@ const getAllPosts = async (req, res) => {
       },
     ]);
 
-    res.json(posts);
+    res.json({ data: posts });
   } catch (error) {
     return res
       .status(STATUS_CODE.SERVER_ERROR)
