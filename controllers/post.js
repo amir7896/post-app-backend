@@ -1,3 +1,4 @@
+const { Types } = require("mongoose");
 const Post = require("../models/post");
 const Comment = require("../models/comment");
 const { ERRORS, STATUS_CODE, SUCCESS_MSG } = require("../constants");
@@ -96,6 +97,9 @@ const commentOnPost = async (req, res) => {
 // Get all posts with likes and comments
 const getAllPosts = async (req, res) => {
   try {
+    const start = parseInt(req.query.start) || 0; // Default to start at 0 if no start is specified
+    const limit = parseInt(req.query.limit) || 5; // Default to limit of 5 if no limit is specified
+
     const posts = await Post.aggregate([
       {
         $lookup: {
@@ -127,7 +131,8 @@ const getAllPosts = async (req, res) => {
       {
         $addFields: {
           likesCount: { $size: "$likes" },
-          userName: "$userDetails.username",
+          userName: "$userDetails.userName",
+          userId: "$userDetails._id",
           comments: {
             $map: {
               input: "$commentDetails",
@@ -153,7 +158,10 @@ const getAllPosts = async (req, res) => {
           _id: 1,
           title: 1,
           content: 1,
-          user: "$userName",
+          user: {
+            userId: "$userId",
+            userName: "$userName",
+          },
           likesCount: 1,
           comments: {
             _id: 1,
@@ -165,6 +173,12 @@ const getAllPosts = async (req, res) => {
           },
         },
       },
+      {
+        $skip: start,
+      },
+      {
+        $limit: limit,
+      },
     ]);
 
     res.json(posts);
@@ -175,9 +189,51 @@ const getAllPosts = async (req, res) => {
   }
 };
 
+// Get all comments for a single post
+const getAllCommentsForPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId).populate({
+      path: "comments",
+      populate: {
+        path: "user",
+        select: "_id userName",
+      },
+    });
+
+    if (!post) {
+      return res
+        .status(STATUS_CODE.NOT_FOUND)
+        .json({ success: false, message: ERRORS.ERRORS.POST_NOT_FOUND });
+    }
+
+    const comments = post.comments.map((comment) => ({
+      _id: comment._id,
+      content: comment.content,
+      user: {
+        _id: comment.user._id,
+        userName: comment.user.userName,
+      },
+    }));
+
+    return res.status(STATUS_CODE.OK).json({
+      success: true,
+      postId: post._id,
+      comments: comments,
+    });
+  } catch (error) {
+    console.error("Server error on getting comments for post:", error);
+    return res
+      .status(STATUS_CODE.SERVER_ERROR)
+      .json({ success: false, message: ERRORS.ERRORS.SERVER_ERROR });
+  }
+};
+
 module.exports = {
   createPost,
   likePost,
   commentOnPost,
   getAllPosts,
+  getAllCommentsForPost,
 };
