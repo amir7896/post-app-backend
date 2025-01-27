@@ -4,6 +4,7 @@ const {
   likePost,
   commentOnPost,
   getAllPosts,
+  getAllCommentsForPost,
 } = require("../controllers/post");
 const router = express.Router();
 const isAuthenticate = require("../middlewares/authentication/auth");
@@ -13,5 +14,6 @@ router.post("/create", validPost, isAuthenticate, createPost);
 router.post("/like", isAuthenticate, likePost);
 router.post("/comment", isAuthenticate, commentOnPost);
 router.get("/list", getAllPosts);
+router.get("/comments/:postId", isAuthenticate, getAllCommentsForPost);
 
 module.exports = router;

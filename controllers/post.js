@@ -1,3 +1,4 @@
+const { Types } = require("mongoose");
 const Post = require("../models/post");
 const Comment = require("../models/comment");
 const { ERRORS, STATUS_CODE, SUCCESS_MSG } = require("../constants");
@@ -188,9 +189,51 @@ const getAllPosts = async (req, res) => {
   }
 };
 
+// Get all comments for a single post
+const getAllCommentsForPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId).populate({
+      path: "comments",
+      populate: {
+        path: "user",
+        select: "_id userName",
+      },
+    });
+
+    if (!post) {
+      return res
+        .status(STATUS_CODE.NOT_FOUND)
+        .json({ success: false, message: ERRORS.ERRORS.POST_NOT_FOUND });
+    }
+
+    const comments = post.comments.map((comment) => ({
+      _id: comment._id,
+      content: comment.content,
+      user: {
+        _id: comment.user._id,
+        userName: comment.user.userName,
+      },
+    }));
+
+    return res.status(STATUS_CODE.OK).json({
+      success: true,
+      postId: post._id,
+      comments: comments,
+    });
+  } catch (error) {
+    console.error("Server error on getting comments for post:", error);
+    return res
+      .status(STATUS_CODE.SERVER_ERROR)
+      .json({ success: false, message: ERRORS.ERRORS.SERVER_ERROR });
+  }
+};
+
 module.exports = {
   createPost,
   likePost,
   commentOnPost,
   getAllPosts,
+  getAllCommentsForPost,
 };
