@@ -96,6 +96,9 @@ const commentOnPost = async (req, res) => {
 // Get all posts with likes and comments
 const getAllPosts = async (req, res) => {
   try {
+    const start = parseInt(req.query.start) || 0; // Default to start at 0 if no start is specified
+    const limit = parseInt(req.query.limit) || 5; // Default to limit of 5 if no limit is specified
+
     const posts = await Post.aggregate([
       {
         $lookup: {
@@ -127,7 +130,8 @@ const getAllPosts = async (req, res) => {
       {
         $addFields: {
           likesCount: { $size: "$likes" },
-          userName: "$userDetails.username",
+          userName: "$userDetails.userName",
+          userId: "$userDetails._id",
           comments: {
             $map: {
               input: "$commentDetails",
@@ -153,7 +157,10 @@ const getAllPosts = async (req, res) => {
           _id: 1,
           title: 1,
           content: 1,
-          user: "$userName",
+          user: {
+            userId: "$userId",
+            userName: "$userName",
+          },
           likesCount: 1,
           comments: {
             _id: 1,
@@ -164,6 +171,12 @@ const getAllPosts = async (req, res) => {
             },
           },
         },
+      },
+      {
+        $skip: start,
+      },
+      {
+        $limit: limit,
       },
     ]);
 

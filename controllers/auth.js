@@ -58,7 +58,7 @@ const loginUser = async (req, res) => {
       username: user.userName,
     };
 
-    const expiresIn = "10h";
+    const expiresIn = "7d";
     const token = await authService.generateJwtToken(payload, expiresIn);
 
     // Send the token as part of the response
