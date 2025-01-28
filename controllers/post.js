@@ -75,22 +75,30 @@ const likePost = async (req, res) => {
 const commentOnPost = async (req, res) => {
   try {
     const { postId, content } = req.body;
-
-    const { userId } = req.user;
+    const { userId, username } = req.user;
 
     const comment = new Comment({ user: userId, post: postId, content });
     await comment.save();
 
+    const populatedComment = await Comment.findById(comment._id).populate(
+      "user",
+      "_id userName"
+    );
+
     await Post.findByIdAndUpdate(postId, { $push: { comments: comment._id } });
 
-    return res
-      .status(STATUS_CODE.OK)
-      .json({ success: true, message: SUCCESS_MSG.COMMENT.ADDED });
+    return res.status(200).json({
+      success: true,
+      message: "Comment added successfully",
+      comment: populatedComment,
+    });
   } catch (error) {
-    console.log("Server error comment on post:", error);
-    res
-      .status(STATUS_CODE.SERVER_ERROR)
-      .json({ message: ERRORS.ERRORS.SERVER_ERROR, error: error });
+    console.error("Server error comment on post:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to add comment",
+      error: error.message,
+    });
   }
 };
 
@@ -112,45 +120,12 @@ const getAllPosts = async (req, res) => {
       {
         $unwind: "$userDetails",
       },
-      {
-        $lookup: {
-          from: "comments",
-          localField: "comments",
-          foreignField: "_id",
-          as: "commentDetails",
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "commentDetails.user",
-          foreignField: "_id",
-          as: "commentUserDetails",
-        },
-      },
+
       {
         $addFields: {
           likesCount: { $size: "$likes" },
           userName: "$userDetails.userName",
           userId: "$userDetails._id",
-          comments: {
-            $map: {
-              input: "$commentDetails",
-              as: "comment",
-              in: {
-                _id: "$$comment._id",
-                content: "$$comment.content",
-                user: {
-                  $arrayElemAt: [
-                    "$commentUserDetails",
-                    {
-                      $indexOfArray: ["$commentDetails._id", "$$comment._id"],
-                    },
-                  ],
-                },
-              },
-            },
-          },
         },
       },
       {
@@ -163,14 +138,6 @@ const getAllPosts = async (req, res) => {
             userName: "$userName",
           },
           likesCount: 1,
-          comments: {
-            _id: 1,
-            content: 1,
-            user: {
-              _id: 1,
-              userName: 1,
-            },
-          },
         },
       },
       {

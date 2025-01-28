@@ -69,7 +69,7 @@ const loginUser = async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error("Error during registration:", error);
+    console.error("Error during login:", error);
     return res
       .status(STATUS_CODE.SERVER_ERROR)
       .json({ success: false, message: ERRORS.ERRORS.SERVER_ERROR });
