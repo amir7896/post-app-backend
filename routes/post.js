@@ -13,7 +13,7 @@ const { validPost } = require("../middlewares/validations/carValidation");
 router.post("/create", validPost, isAuthenticate, createPost);
 router.post("/like", isAuthenticate, likePost);
 router.post("/comment", isAuthenticate, commentOnPost);
-router.get("/list", getAllPosts);
+router.get("/list", isAuthenticate, getAllPosts);
 router.get("/comments/:postId", isAuthenticate, getAllCommentsForPost);
 
 module.exports = router;
