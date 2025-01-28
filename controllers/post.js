@@ -1,4 +1,4 @@
-const { Types } = require("mongoose");
+const { Types, isObjectIdOrHexString } = require("mongoose");
 const Post = require("../models/post");
 const Comment = require("../models/comment");
 const { ERRORS, STATUS_CODE, SUCCESS_MSG } = require("../constants");
@@ -58,10 +58,13 @@ const likePost = async (req, res) => {
 
     await post.save();
 
+    const isLikedByUser = post.likes.includes(userId);
+
     return res.status(STATUS_CODE.OK).json({
       success: true,
       message: likeMessage,
       likesCount: post.likes.length,
+      isLikedByUser,
     });
   } catch (error) {
     console.log("Server error on like post:", error);
@@ -107,6 +110,7 @@ const getAllPosts = async (req, res) => {
   try {
     const start = parseInt(req.query.start) || 0; // Default to start at 0 if no start is specified
     const limit = parseInt(req.query.limit) || 5; // Default to limit of 5 if no limit is specified
+    const { userId } = req.user;
 
     const posts = await Post.aggregate([
       {
@@ -120,12 +124,14 @@ const getAllPosts = async (req, res) => {
       {
         $unwind: "$userDetails",
       },
-
       {
         $addFields: {
           likesCount: { $size: "$likes" },
           userName: "$userDetails.userName",
           userId: "$userDetails._id",
+          isLikedByUser: {
+            $in: [new Types.ObjectId(userId), "$likes"],
+          },
         },
       },
       {
@@ -138,6 +144,7 @@ const getAllPosts = async (req, res) => {
             userName: "$userName",
           },
           likesCount: 1,
+          isLikedByUser: 1,
         },
       },
       {
@@ -150,6 +157,7 @@ const getAllPosts = async (req, res) => {
 
     res.json({ data: posts });
   } catch (error) {
+    console.log("Error in getting posts:", error);
     return res
       .status(STATUS_CODE.SERVER_ERROR)
       .json({ message: ERRORS.ERRORS.SERVER_ERROR, error: error });
