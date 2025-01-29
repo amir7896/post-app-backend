@@ -9,8 +9,15 @@ const {
 const router = express.Router();
 const isAuthenticate = require("../middlewares/authentication/auth");
 const { validPost } = require("../middlewares/validations/carValidation");
+const { upload } = require("../cloudinary");
 
-router.post("/create", validPost, isAuthenticate, createPost);
+router.post(
+  "/create",
+  upload.array("media", 10),
+  isAuthenticate,
+  validPost,
+  createPost
+);
 router.post("/like", isAuthenticate, likePost);
 router.post("/comment", isAuthenticate, commentOnPost);
 router.get("/list", isAuthenticate, getAllPosts);

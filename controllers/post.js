@@ -2,18 +2,45 @@ const { Types, isObjectIdOrHexString } = require("mongoose");
 const Post = require("../models/post");
 const Comment = require("../models/comment");
 const { ERRORS, STATUS_CODE, SUCCESS_MSG } = require("../constants");
+const { uploadToCloudinary } = require("../cloudinary");
 
 // Create a new post
 const createPost = async (req, res) => {
   try {
     const { title, content } = req.body;
-
     const { userId } = req.user;
+
+    let images = [];
+    let videos = [];
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const folder = file.mimetype.startsWith("video")
+          ? process.env.POST_VIDEO_FOLDER_NAME
+          : process.env.POST_IMAGE_FOLDER_NAME;
+        const resourceType = file.mimetype.startsWith("video")
+          ? "video"
+          : "image";
+        const uploadedFile = await uploadToCloudinary(
+          file,
+          folder,
+          resourceType
+        );
+
+        if (resourceType === "image") {
+          images.push(uploadedFile);
+        } else {
+          videos.push(uploadedFile);
+        }
+      }
+    }
 
     const post = new Post({
       user: userId,
-      title: title,
-      content: content,
+      title,
+      content,
+      images,
+      videos,
     });
 
     await post.save();
@@ -21,13 +48,15 @@ const createPost = async (req, res) => {
     return res.status(STATUS_CODE.OK).json({
       success: true,
       message: SUCCESS_MSG.POST.CREATED,
-      user: post,
+      data: post,
     });
   } catch (error) {
     console.error("Server error on creating post:", error);
-    return res
-      .status(STATUS_CODE.SERVER_ERROR)
-      .json({ success: false, message: ERRORS.ERRORS.SERVER_ERROR });
+    return res.status(STATUS_CODE.SERVER_ERROR).json({
+      success: false,
+      message: ERRORS.ERRORS.SERVER_ERROR,
+      error: error.message,
+    });
   }
 };
 

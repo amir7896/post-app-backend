@@ -10,11 +10,36 @@ cloudinary.config({
 const upload = multer({
   storage: multer.diskStorage({}),
   fileFilter: (req, file, cb) => {
-    cb(null, true);
+    if (
+      file.mimetype.startsWith("image") ||
+      file.mimetype.startsWith("video")
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only images and videos are allowed"), false);
+    }
   },
 });
+
+// Uploads files to Cloudinary in the correct folder
+const uploadToCloudinary = async (file, folder, resourceType) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload(
+      file.path,
+      { folder, resource_type: resourceType },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve({
+          publicId: result.public_id,
+          secureUrl: result.secure_url,
+        });
+      }
+    );
+  });
+};
 
 module.exports = {
   cloudinary,
   upload,
+  uploadToCloudinary,
 };
