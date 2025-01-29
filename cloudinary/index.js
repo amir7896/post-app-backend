@@ -7,14 +7,46 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_SECRET_KEY,
 });
 
+//  Use memory storage
+const storage = multer.memoryStorage();
+
 const upload = multer({
-  storage: multer.diskStorage({}),
+  storage,
   fileFilter: (req, file, cb) => {
-    cb(null, true);
+    if (
+      file.mimetype.startsWith("image") ||
+      file.mimetype.startsWith("video")
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only images and videos are allowed"), false);
+    }
   },
 });
 
-module.exports = {
-  cloudinary,
-  upload,
+//  Upload to Cloudinary (Using Buffer)
+const uploadToCloudinary = async (buffer, folder, mimetype) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader
+      .upload_stream(
+        {
+          folder,
+          resource_type: mimetype.startsWith("video") ? "video" : "image",
+        },
+        (error, result) => {
+          if (error) {
+            console.log("Upload error:", error);
+            return reject(error);
+          }
+          resolve({
+            publicId: result.public_id,
+            secureUrl: result.secure_url,
+            mediaType: result.resource_type,
+          });
+        }
+      )
+      .end(buffer);
+  });
 };
+
+module.exports = { cloudinary, upload, uploadToCloudinary };
