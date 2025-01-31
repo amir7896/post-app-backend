@@ -164,6 +164,7 @@ const getAllPosts = async (req, res) => {
           },
           likesCount: 1,
           isLikedByUser: 1,
+          media: 1, // Add this line to include the media array
         },
       },
       {
